@@ -27,5 +27,11 @@ def generate_launch_description():
             executable='flight_manager',
             name='flight_manager_node',
             output='screen'
+        ),
+        Node(
+            package='manual_avoidance_drone',
+            executable='rc_viewer',
+            name='rc_viewer_node',
+            output='screen'
         )
     ])

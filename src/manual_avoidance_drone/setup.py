@@ -29,6 +29,7 @@ setup(
             'lidar_processor = manual_avoidance_drone.lidar_processor_node:main',
             'avoidance_controller = manual_avoidance_drone.avoidance_controller_node:main',
             'flight_manager = manual_avoidance_drone.flight_manager_node:main',
+            'rc_viewer = manual_avoidance_drone.rc_viewer_node:main',
         ],
     },
 )
