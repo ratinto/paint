@@ -62,6 +62,12 @@ class LidarProcessorNode(Node):
         sectors_msg = Float32MultiArray()
         sectors_msg.data = [float(min_front), float(min_left), float(min_right), float(min_back)]
         self.pub_sectors.publish(sectors_msg)
+        
+        # Log the distances
+        self.get_logger().info(
+            f'Sectors [Front: {min_front:.2f}m, Left: {min_left:.2f}m, Right: {min_right:.2f}m, Back: {min_back:.2f}m]',
+            throttle_duration_sec=0.5
+        )
 
 def main(args=None):
     rclpy.init(args=args)
