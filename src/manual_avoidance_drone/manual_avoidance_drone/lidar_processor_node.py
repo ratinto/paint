@@ -47,15 +47,19 @@ class LidarProcessorNode(Node):
             angle_rad = math.atan2(math.sin(angle_rad), math.cos(angle_rad))
             angle_deg = math.degrees(angle_rad)
             
-            # Map into sectors
+            # Map into sectors (Note: LiDAR is mounted flipped 180 degrees)
+            # LiDAR Front -> Drone Back
             if -30 <= angle_deg <= 30:
-                min_front = min(min_front, distance)
-            elif 30 < angle_deg <= 120:
-                min_left = min(min_left, distance)
-            elif -120 <= angle_deg < -30:
-                min_right = min(min_right, distance)
-            else:  # remaining ranges are 120 to 180 and -180 to -120
                 min_back = min(min_back, distance)
+            # LiDAR Left -> Drone Right
+            elif 30 < angle_deg <= 120:
+                min_right = min(min_right, distance)
+            # LiDAR Right -> Drone Left
+            elif -120 <= angle_deg < -30:
+                min_left = min(min_left, distance)
+            # LiDAR Back -> Drone Front
+            else:  # remaining ranges are 120 to 180 and -180 to -120
+                min_front = min(min_front, distance)
                 
         # Publish the data: front, left, right, back
         # Using a fixed layout where data[0]=front, data[1]=left, data[2]=right, data[3]=back
