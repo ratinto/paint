@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from mavros_msgs.msg import RCIn
 
 
@@ -7,11 +8,17 @@ class RCViewerNode(Node):
     def __init__(self):
         super().__init__('rc_viewer_node')
 
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
+        )
+
         self.sub_rc = self.create_subscription(
             RCIn,
             '/mavros/rc/in',
             self.rc_callback,
-            10
+            qos
         )
 
         self.get_logger().info('RC Viewer Node Started. Listening to RC inputs...')
