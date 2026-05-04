@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
 from mavros_msgs.msg import State
@@ -7,7 +8,13 @@ from mavros_msgs.msg import State
 class AvoidanceControllerNode(Node):
     def __init__(self):
         super().__init__('avoidance_controller_node')
-        
+
+        mavros_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
+        )
+
         self.sub_pilot = self.create_subscription(
             Twist,
             '/pilot_cmd_vel',
@@ -26,7 +33,7 @@ class AvoidanceControllerNode(Node):
             State,
             '/mavros/state',
             self.state_callback,
-            10
+            mavros_qos
         )
         
         self.pub_cmd = self.create_publisher(Twist, '/mavros/setpoint_velocity/cmd_vel_unstamped', 10)

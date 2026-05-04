@@ -1,17 +1,24 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode
 
 class FlightManagerNode(Node):
     def __init__(self):
         super().__init__('flight_manager_node')
-        
+
+        mavros_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
+        )
+
         self.sub_state = self.create_subscription(
             State,
             '/mavros/state',
             self.state_callback,
-            10
+            mavros_qos
         )
         
         self.client_arm = self.create_client(CommandBool, '/mavros/cmd/arming')
