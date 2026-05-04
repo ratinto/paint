@@ -1,17 +1,24 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from mavros_msgs.msg import RCIn
 from geometry_msgs.msg import Twist
 
 class RCReaderNode(Node):
     def __init__(self):
         super().__init__('rc_reader_node')
-        
+
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
+        )
+
         self.sub_rc = self.create_subscription(
             RCIn,
             '/mavros/rc/in',
             self.rc_callback,
-            10
+            qos
         )
         
         self.pub_cmd = self.create_publisher(Twist, '/pilot_cmd_vel', 10)
