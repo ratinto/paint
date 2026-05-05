@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from mavros_msgs.msg import State
+from mavros_msgs.msg import State, RCIn
 from mavros_msgs.srv import CommandBool, SetMode
 
 class FlightManagerNode(Node):
@@ -14,43 +14,51 @@ class FlightManagerNode(Node):
             10
         )
         
-        self.client_arm = self.create_client(CommandBool, '/mavros/cmd/arming')
+        self.sub_rc = self.create_subscription(
+            RCIn,
+            '/mavros/rc/in',
+            self.rc_callback,
+            10
+        )
+        
         self.client_mode = self.create_client(SetMode, '/mavros/set_mode')
         
         self.fcu_connected = False
         self.fcu_mode = ""
         self.fcu_armed = False
         
-        self.timer = self.create_timer(1.0, self.timer_callback)
-        
-        self.get_logger().info('Flight Manager Node Started. Supervising GUIDED + Arming state.')
+        self.get_logger().info('Flight Manager Node Started. Supervising GUIDED toggle via RC.')
 
     def state_callback(self, msg: State):
         self.fcu_connected = msg.connected
         self.fcu_mode = msg.mode
         self.fcu_armed = msg.armed
 
-    def timer_callback(self):
-        if not self.fcu_connected:
-            self.get_logger().info('Waiting for FCU connection...', throttle_duration_sec=5.0)
+    def rc_callback(self, msg: RCIn):
+        if not self.fcu_connected or len(msg.channels) < 5:
             return
             
-        # Ensure mode is GUIDED
-        if self.fcu_mode != 'GUIDED':
+        # We assume Channel 5 (Index 4) is our Manual/Guided switch
+        guided_switch_pwm = msg.channels[4]
+        
+        # Log the switch state periodically to avoid console spam
+        self.get_logger().info(f'Channel 5 switch PWM: {guided_switch_pwm}', throttle_duration_sec=2.0)
+        
+        # Switch LOW (<1500 PWM) -> Change to GUIDED Mode
+        if guided_switch_pwm < 1500 and self.fcu_mode != 'GUIDED':
             if self.client_mode.wait_for_service(timeout_sec=1.0):
-                self.get_logger().info('Requesting GUIDED mode...')
+                self.get_logger().info('Switch LOW: Requesting GUIDED mode...')
                 req = SetMode.Request()
                 req.custom_mode = 'GUIDED'
                 self.client_mode.call_async(req)
-            return  # Wait for mode to change
-            
-        # Ensure armed
-        if not self.fcu_armed:
-            if self.client_arm.wait_for_service(timeout_sec=1.0):
-                self.get_logger().info('Requesting ARM...')
-                req = CommandBool.Request()
-                req.value = True
-                self.client_arm.call_async(req)
+                
+        # Switch HIGH (>1500 PWM) -> Return to LOITER Mode (Manual)
+        elif guided_switch_pwm > 1500 and self.fcu_mode == 'GUIDED':
+            if self.client_mode.wait_for_service(timeout_sec=1.0):
+                self.get_logger().info('Switch HIGH: Requesting LOITER mode...')
+                req = SetMode.Request()
+                req.custom_mode = 'LOITER'
+                self.client_mode.call_async(req)
 
 def main(args=None):
     rclpy.init(args=args)
